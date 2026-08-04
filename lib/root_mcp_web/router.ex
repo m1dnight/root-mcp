@@ -20,6 +20,12 @@ defmodule RootWeb.Router do
     get "/", PageController, :home
   end
 
+  scope "/mcp" do
+    pipe_through :api
+
+    forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", RootWeb do
   #   pipe_through :api

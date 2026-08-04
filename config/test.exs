@@ -17,6 +17,11 @@ config :root_mcp, RootWeb.Endpoint,
   secret_key_base: "zxK3N/wpmBhxEy5N5Kf5n8T7Hj2/Sb0hwPiQTCUgYtezLdUbsecN6+LsLCt6p0il",
   server: false
 
+# Tests dispatch through the endpoint without a running HTTP server, so the
+# MCP transport must be started explicitly (it normally only starts when
+# Phoenix serves endpoints, e.g. under `mix phx.server`)
+config :root_mcp, :start_mcp_transport, true
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

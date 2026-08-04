@@ -14,6 +14,8 @@ defmodule Root.Application do
        repos: Application.fetch_env!(:root_mcp, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:root_mcp, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Root.PubSub},
+      {Root.MCP.Server,
+       transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
       # Start a worker by calling: Root.Worker.start_link(arg)
       # {Root.Worker, arg},
       # Start to serve requests, typically the last entry

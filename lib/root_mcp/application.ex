@@ -20,6 +20,8 @@ defmodule Root.Application do
        transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
       {Root.MCP.Server.Editor,
        transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
+      {Root.MCP.Server.Proxy,
+       transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
       # Start a worker by calling: Root.Worker.start_link(arg)
       # {Root.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -46,7 +46,10 @@ defmodule Root.MCP.Upstream do
         name: via(id, :client),
         transport_name: via(id, :transport),
         transport: transport,
-        client_info: %{"name" => "RootMCP", "version" => "0.1.0"},
+        # the name must be unique per upstream: Anubis derives its client-side
+        # ETS cache table from it, and a shared name makes clients crash on
+        # each other's tables when several upstreams process tools/list
+        client_info: %{"name" => "RootMCP upstream #{id}", "version" => "0.1.0"},
         protocol_version: @protocol_version
       ]
 

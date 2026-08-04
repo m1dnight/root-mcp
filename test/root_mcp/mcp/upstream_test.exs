@@ -32,6 +32,10 @@ defmodule Root.MCP.UpstreamTest do
     assert Upstream.list() == ["echo-a", "echo-b"]
     assert is_pid(Upstream.whereis("echo-a"))
 
+    # both must list tools without tripping over Anubis' per-client ETS cache
+    assert {:ok, %{result: %{"tools" => _}}} = Upstream.list_tools("echo-a")
+    assert {:ok, %{result: %{"tools" => _}}} = Upstream.list_tools("echo-b")
+
     assert :ok = Upstream.stop("echo-a")
     assert Upstream.list() == ["echo-b"]
     assert {:error, :not_found} = Upstream.ping("echo-a")

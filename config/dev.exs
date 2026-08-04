@@ -26,6 +26,11 @@ config :root_mcp, RootWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:root_mcp, ~w(--watch)]}
   ]
 
+# Static bearer token for manually testing the /mcp/proxy endpoint in dev,
+# e.g.: curl -H "Authorization: Bearer root-dev-proxy-token" ...
+# Dev-only convenience; production uses only signed per-execution tokens.
+config :root_mcp, :proxy_static_token, "root-dev-proxy-token"
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

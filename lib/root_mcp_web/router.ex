@@ -14,10 +14,21 @@ defmodule RootWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :proxy_auth do
+    plug RootWeb.Plugs.ProxyAuth
+  end
+
   scope "/", RootWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+  end
+
+  # must precede the "/mcp" scope: its catch-all forward would swallow "/mcp/proxy"
+  scope "/mcp/proxy" do
+    pipe_through [:api, :proxy_auth]
+
+    forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server.Proxy
   end
 
   scope "/mcp" do

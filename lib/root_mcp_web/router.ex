@@ -23,7 +23,9 @@ defmodule RootWeb.Router do
   scope "/mcp" do
     pipe_through :api
 
-    forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server
+    # more specific forward first: "/" would swallow "/editor"
+    forward "/editor", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server.Editor
+    forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server.Client
   end
 
   # Other scopes may use custom stacks.

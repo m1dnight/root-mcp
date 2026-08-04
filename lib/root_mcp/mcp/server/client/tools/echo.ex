@@ -1,4 +1,4 @@
-defmodule Root.MCP.Tools.Echo do
+defmodule Root.MCP.Server.Client.Tools.Echo do
   @moduledoc "Echoes the given text back to the caller"
 
   use Anubis.Server.Component, type: :tool

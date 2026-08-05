@@ -22,6 +22,10 @@ config :root_mcp, RootWeb.Endpoint,
 # Phoenix serves endpoints, e.g. under `mix phx.server`)
 config :root_mcp, :start_mcp_transport, true
 
+# Tests drive upstreams themselves; the manager would also race the SQL
+# sandbox by querying configs outside any test's ownership
+config :root_mcp, :autostart_upstreams, false
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

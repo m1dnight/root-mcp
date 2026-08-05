@@ -90,11 +90,19 @@ defmodule Root.Composition.Store do
     GenServer.call(store, {:delete, name})
   end
 
+  @doc """
+  The PubSub topic (on `Root.PubSub`) receiving `:compositions_changed`
+  after every mutation.
+  """
+  @spec topic() :: String.t()
+  def topic, do: "compositions"
+
   @impl true
   def init(compositions), do: {:ok, compositions}
 
   @impl true
   def handle_call({:put, composition}, _from, compositions) do
+    broadcast_change()
     {:reply, :ok, Map.put(compositions, composition.name, composition)}
   end
 
@@ -108,8 +116,17 @@ defmodule Root.Composition.Store do
 
   def handle_call({:delete, name}, _from, compositions) do
     case Map.pop(compositions, name) do
-      {nil, _} -> {:reply, {:error, :not_found}, compositions}
-      {_composition, rest} -> {:reply, :ok, rest}
+      {nil, _} ->
+        {:reply, {:error, :not_found}, compositions}
+
+      {_composition, rest} ->
+        broadcast_change()
+        {:reply, :ok, rest}
     end
+  end
+
+  @spec broadcast_change() :: :ok
+  defp broadcast_change do
+    Phoenix.PubSub.broadcast(Root.PubSub, topic(), :compositions_changed)
   end
 end

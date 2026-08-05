@@ -1,6 +1,9 @@
 defmodule Root.CompositionTest do
   use ExUnit.Case, async: true
 
+  # store changes notify idle MCP test sessions, which log no_sse_handler errors
+  @moduletag :capture_log
+
   alias Root.Composition
   alias Root.Composition.Store
 

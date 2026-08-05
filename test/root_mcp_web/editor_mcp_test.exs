@@ -1,6 +1,9 @@
 defmodule RootWeb.EditorMCPTest do
   use RootWeb.ConnCase, async: false
 
+  # composition upserts notify idle test sessions, which log no_sse_handler errors
+  @moduletag :capture_log
+
   import RootWeb.MCPHelpers
 
   alias Root.MCP.Upstream

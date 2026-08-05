@@ -1,6 +1,9 @@
 defmodule RootWeb.MCPTest do
   use RootWeb.ConnCase, async: false
 
+  # store changes notify idle test sessions, which log no_sse_handler errors
+  @moduletag :capture_log
+
   import RootWeb.MCPHelpers
 
   alias Root.Composition
@@ -19,10 +22,40 @@ defmodule RootWeb.MCPTest do
     on_exit(fn -> Store.delete(name) end)
   end
 
-  test "initialize returns server info" do
+  test "initialize returns server info and advertises listChanged" do
     {response, _session_id} = initialize_mcp("/mcp")
 
-    assert %{"result" => %{"serverInfo" => %{"name" => "RootMCP"}}} = response
+    assert %{
+             "result" => %{
+               "serverInfo" => %{"name" => "RootMCP"},
+               "capabilities" => %{"tools" => %{"listChanged" => true}}
+             }
+           } = response
+  end
+
+  test "store changes push tools/list_changed to live sessions" do
+    {_response, session_id} = initialize_mcp("/mcp")
+
+    config = Anubis.Server.Supervisor.get_session_config(Root.MCP.Server.Client)
+    registry_name = Anubis.Server.Registry.registry_name(Root.MCP.Server.Client)
+    {:ok, session_pid} = config.registry_mod.lookup_session(registry_name, session_id)
+
+    :erlang.trace(session_pid, true, [:receive])
+
+    on_exit(fn ->
+      # the session may already be gone by then; tracing a dead pid raises
+      try do
+        :erlang.trace(session_pid, false, [:receive])
+      rescue
+        ArgumentError -> :ok
+      end
+    end)
+
+    store_composition("noisy", "def run(args):\n    return {}")
+
+    assert_receive {:trace, ^session_pid, :receive,
+                    {:send_notification, "notifications/tools/list_changed", %{}}},
+                   2000
   end
 
   test "serves stored compositions as tools, following the store" do

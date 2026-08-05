@@ -17,7 +17,7 @@ defmodule Root.MCP.Server.Client do
   use Anubis.Server,
     name: "RootMCP",
     version: "0.1.0",
-    capabilities: [:tools]
+    capabilities: [{:tools, list_changed?: true}]
 
   alias Anubis.MCP.Error
   alias Anubis.Server.Component.Tool

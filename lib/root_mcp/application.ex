@@ -19,6 +19,7 @@ defmodule Root.Application do
       {DynamicSupervisor, name: Root.MCP.Upstream.Supervisor, strategy: :one_for_one},
       {Root.MCP.Server.Client,
        transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
+      Root.MCP.Server.Client.Notifier,
       {Root.MCP.Server.Editor,
        transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
       {Root.MCP.Server.Proxy,

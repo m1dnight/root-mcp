@@ -33,6 +33,27 @@ defmodule RootWeb.MCPTest do
            } = response
   end
 
+  # regression: the router's :api pipeline (accepts ["json"]) used to 406 the
+  # SSE GET stream, so server-initiated notifications never reached clients
+  test "the SSE notification stream can be opened" do
+    {_response, session_id} = initialize_mcp("/mcp")
+
+    port = URI.parse(RootWeb.Endpoint.url()).port
+    {:ok, socket} = :gen_tcp.connect(~c"localhost", port, [:binary, active: false])
+
+    request =
+      "GET /mcp HTTP/1.1\r\nhost: localhost\r\naccept: text/event-stream\r\n" <>
+        "mcp-session-id: #{session_id}\r\nmcp-protocol-version: 2025-06-18\r\n\r\n"
+
+    :ok = :gen_tcp.send(socket, request)
+    {:ok, response} = :gen_tcp.recv(socket, 0, 5000)
+
+    assert response =~ "HTTP/1.1 200"
+    assert response =~ "text/event-stream"
+
+    :gen_tcp.close(socket)
+  end
+
   test "store changes push tools/list_changed to live sessions" do
     {_response, session_id} = initialize_mcp("/mcp")
 

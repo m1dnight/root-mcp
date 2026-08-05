@@ -24,16 +24,18 @@ defmodule RootWeb.Router do
     get "/", PageController, :home
   end
 
+  # The MCP scopes must NOT pipe through :api — its `accepts ["json"]` plug
+  # 406s the SSE GET stream (Accept: text/event-stream) that clients open for
+  # server-initiated notifications. The Anubis plug validates Accept itself.
+
   # must precede the "/mcp" scope: its catch-all forward would swallow "/mcp/proxy"
   scope "/mcp/proxy" do
-    pipe_through [:api, :proxy_auth]
+    pipe_through :proxy_auth
 
     forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server.Proxy
   end
 
   scope "/mcp" do
-    pipe_through :api
-
     # more specific forward first: "/" would swallow "/editor"
     forward "/editor", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server.Editor
     forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Root.MCP.Server.Client

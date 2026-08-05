@@ -11,7 +11,7 @@ once, and let clients reuse them.
 Using a lot of MCPs has a few drawbacks.
 
 1. Each tool takes up space in the
-  context[[1]](https://www.apideck.com/blog/mcp-server-eating-context-window-cli-alternative)
+  context[[1]](https://www.apideck.com/blog/mcp-server-eating-context-window-cli-alternative)[[2]](https://www.anthropic.com/engineering/code-execution-with-mcp)
 2. The composition of outputs and inputs of MCPs is non-determinstic. The
   compostion lives in your agent's memory and there is no way to verify it's
    logic, or reuse it.

@@ -13,12 +13,31 @@ defmodule RootWeb.VaultLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, refresh(assign(socket, page_title: "Vault"))}
+    {:ok, socket |> assign(page_title: "Vault") |> reset_form() |> refresh()}
   end
 
   @impl true
+  def handle_event("reveal", %{"name" => name}, socket) do
+    case Vault.fetch(name) do
+      {:ok, value} -> {:noreply, assign(socket, revealed: {name, value})}
+      :error -> {:noreply, refresh(socket)}
+    end
+  end
+
+  def handle_event("hide", _params, socket) do
+    {:noreply, assign(socket, revealed: nil)}
+  end
+
+  def handle_event("edit", %{"name" => name}, socket) do
+    {:noreply, assign(socket, editing: name, form: build_form(name))}
+  end
+
+  def handle_event("cancel", _params, socket) do
+    {:noreply, reset_form(socket)}
+  end
+
   def handle_event("save", %{"secret" => %{"name" => name, "value" => value}}, socket) do
-    name = String.trim(name)
+    name = String.trim(socket.assigns.editing || name)
 
     cond do
       name == "" ->
@@ -33,22 +52,32 @@ defmodule RootWeb.VaultLive do
         {:noreply,
          socket
          |> put_flash(:info, "Secret #{name} saved")
+         |> reset_form()
          |> refresh()}
     end
   end
 
   def handle_event("delete", %{"name" => name}, socket) do
     case Vault.delete(name) do
-      :ok -> {:noreply, socket |> put_flash(:info, "Secret #{name} deleted") |> refresh()}
-      {:error, :not_found} -> {:noreply, refresh(socket)}
+      :ok ->
+        {:noreply,
+         socket |> put_flash(:info, "Secret #{name} deleted") |> reset_form() |> refresh()}
+
+      {:error, :not_found} ->
+        {:noreply, refresh(socket)}
     end
   end
 
   @spec refresh(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   defp refresh(socket) do
-    assign(socket,
-      secrets: Vault.list(),
-      form: to_form(%{"name" => "", "value" => ""}, as: :secret)
-    )
+    assign(socket, secrets: Vault.list())
   end
+
+  @spec reset_form(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  defp reset_form(socket) do
+    assign(socket, editing: nil, revealed: nil, form: build_form(""))
+  end
+
+  @spec build_form(String.t()) :: Phoenix.HTML.Form.t()
+  defp build_form(name), do: to_form(%{"name" => name, "value" => ""}, as: :secret)
 end

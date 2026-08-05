@@ -14,6 +14,7 @@ defmodule Root.Application do
        repos: Application.fetch_env!(:root_mcp, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:root_mcp, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Root.PubSub},
+      Root.Composition.Store,
       {Registry, keys: :unique, name: Root.MCP.Upstream.Registry},
       {DynamicSupervisor, name: Root.MCP.Upstream.Supervisor, strategy: :one_for_one},
       {Root.MCP.Server.Client,

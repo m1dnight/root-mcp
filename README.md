@@ -4,8 +4,8 @@ Root is a meta MCP server that allows users to add MCP servers to it, and it
 behaves as a gateway to these RPCs. There are [plenty of alternatives for
 this](https://composio.dev/mcp-gateway) already, however.
 
-Root takes this a bit further by allowing an LLM to create compositions of
-tools once, and let clients reuse them.
+Root takes this a bit further by allowing an LLM to create compositions of tools
+once, and let clients reuse them.
 
 Using a lot of MCPs has a few drawbacks.
 
@@ -24,7 +24,8 @@ that it will behave the same on each invocation. And finally, since the MCP runs
 the code outside of the model, no tokens are spent on doing the actual
 composition.
 
-To facilitate this, Root exposes two modes to the LLM: user mode and editor mode.
+To facilitate this, Root exposes two modes to the LLM: user mode and editor
+mode.
 
 ## User Mode
 
@@ -36,6 +37,35 @@ It exposes a bunch of tools your LLM can use.
 In editor mode, Root allows your client to wire up compositions of MCP servers.
 The idea is as follows.
 
-In editor mode, the LLM has access to all the sub MCPs that are loaded into Root. The editor can then inspect these, and the user can define how these tools have to be chained together. The LLM generates Python code that defines this behavior, and uploads it to Root, creating a new tool.
+In editor mode, the LLM has access to all the sub MCPs that are loaded into
+Root. The editor can then inspect these, and the user can define how these tools
+have to be chained together. The LLM generates Python code that defines this
+behavior, and uploads it to Root, creating a new tool.
 
 Any user mode session will have access to the newly created tool.
+
+## Architecture
+
+### Composition Scripts
+
+At the heart of Root are composition scripts. They define how a set of tools is
+called, how their individual outputs is transformed and fed into another tool
+call. The final result of the composite tool is then returned as the result of
+calling the composite tool.
+
+### MCP Endpoints
+
+Root is defined as three distinct MCP servers.
+
+ - The editor mcp endpoint is used to modify the behavior of Root itself. It
+   allows a client to create new compositions that result in new tools.
+ - The user mcp endpoint is used to invoke the custom tools that were created by
+   an editor.
+ - The proxy mcp is an mcp that is only used by the actual created tools. It
+   allows composition scripts to invoke the plain tools from within a single
+   wrapper.
+
+## Ideas
+
+ - Testing a composition uses the real MCPs. Maybe we can sandbox this somehow?
+ - Instead of composition, we could also allow plain MCPs being built.

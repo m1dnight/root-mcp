@@ -26,6 +26,7 @@ defmodule RootWeb.Router do
     live "/compositions", CompositionLive
     live "/compositions/:name", CompositionLive
     live "/vault", VaultLive
+    live "/upstreams", UpstreamLive
   end
 
   # The MCP scopes must NOT pipe through :api — its `accepts ["json"]` plug

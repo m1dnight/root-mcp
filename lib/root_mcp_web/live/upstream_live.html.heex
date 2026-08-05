@@ -1,0 +1,97 @@
+<Layouts.app flash={@flash}>
+  <div class="mx-auto max-w-3xl">
+    <h1 class="text-xl font-semibold mb-2">Upstreams</h1>
+    <p class="text-sm opacity-70 mb-6">
+      Enabled upstreams are started automatically, on boot and on save. Env values
+      are literal strings or references:
+      <code class="text-xs" phx-no-curly-interpolation>{"$secret": "name"}</code>
+      (vault) or <code class="text-xs" phx-no-curly-interpolation>{"$env": "NAME"}</code>
+      (host environment).
+    </p>
+
+    <ul id="upstream-list" class="divide-y divide-base-200 border border-base-200 rounded mb-8">
+      <li
+        :for={config <- @configs}
+        id={"upstream-#{config.id}"}
+        class="flex items-center gap-3 px-4 py-2"
+      >
+        <span
+          class={[
+            "text-xs",
+            (MapSet.member?(@running, config.id) && "text-success") || "opacity-30"
+          ]}
+          title={(MapSet.member?(@running, config.id) && "running") || "not running"}
+        >
+          ●
+        </span>
+        <span class="text-sm font-mono">{config.id}</span>
+        <span class="text-xs opacity-60 truncate flex-1">
+          {config.command} {Enum.join(config.args, " ")}
+        </span>
+        <button
+          class="text-sm opacity-60 hover:opacity-100"
+          phx-click="toggle"
+          phx-value-id={config.id}
+        >
+          {(config.enabled && "disable") || "enable"}
+        </button>
+        <button
+          class="text-sm opacity-60 hover:opacity-100"
+          phx-click="edit"
+          phx-value-id={config.id}
+        >
+          edit
+        </button>
+        <button
+          class="text-sm opacity-60 hover:opacity-100 hover:text-error"
+          phx-click="delete"
+          phx-value-id={config.id}
+          data-confirm={"Delete upstream #{config.id}?"}
+        >
+          delete
+        </button>
+      </li>
+      <li :if={@configs == []} class="px-4 py-3 text-sm opacity-60">
+        No upstreams configured yet
+      </li>
+    </ul>
+
+    <h2 class="text-sm font-semibold mb-3 opacity-60">
+      {(@editing && "Edit #{@editing}") || "Add upstream"}
+    </h2>
+
+    <.form for={@form} id="upstream-form" phx-submit="save" class="space-y-4">
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <.input
+            field={@form[:id]}
+            type="text"
+            label="Id"
+            readonly={@editing != nil}
+            autocomplete="off"
+          />
+        </div>
+        <div class="flex-1">
+          <.input field={@form[:command]} type="text" label="Command" autocomplete="off" />
+        </div>
+      </div>
+
+      <.input field={@form[:args]} type="textarea" label="Args (one per line)" rows="3" />
+      <.input field={@form[:env]} type="textarea" label="Env (JSON object)" rows="4" />
+
+      <div class="flex gap-4 items-end">
+        <div class="flex-1">
+          <.input field={@form[:cwd]} type="text" label="Working directory (optional)" />
+        </div>
+        <.input field={@form[:enabled]} type="checkbox" label="Enabled" />
+      </div>
+
+      <div class="flex gap-3">
+        <button class="btn btn-primary btn-sm" type="submit">Save</button>
+        <button :if={@editing} class="btn btn-ghost btn-sm" type="button" phx-click="cancel">
+          Cancel
+        </button>
+      </div>
+    </.form>
+  </div>
+</Layouts.app>

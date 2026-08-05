@@ -47,6 +47,11 @@ defmodule RootWeb.Layouts do
             </.link>
           </li>
           <li>
+            <.link navigate={~p"/vault"} class="text-sm hover:underline">
+              Vault
+            </.link>
+          </li>
+          <li>
             <.theme_toggle />
           </li>
         </ul>

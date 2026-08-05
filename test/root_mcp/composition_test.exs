@@ -1,5 +1,5 @@
 defmodule Root.CompositionTest do
-  use Root.DataCase, async: true
+  use Root.DataCase, async: false
 
   # store changes notify idle MCP test sessions, which log no_sse_handler errors
   @moduletag :capture_log

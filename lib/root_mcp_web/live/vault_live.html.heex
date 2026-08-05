@@ -1,0 +1,41 @@
+<Layouts.app flash={@flash}>
+  <div class="mx-auto max-w-2xl">
+    <h1 class="text-xl font-semibold mb-2">Vault</h1>
+    <p class="text-sm opacity-70 mb-6">
+      Secrets are stored encrypted and can be injected into upstream environments
+      via <code class="text-xs" phx-no-curly-interpolation>{"$secret": "name"}</code>
+      references. Values are write-only: saving an existing name overwrites it.
+    </p>
+
+    <.form for={@form} id="secret-form" phx-submit="save" class="flex items-end gap-3 mb-8">
+      <div class="flex-1">
+        <.input field={@form[:name]} type="text" label="Name" autocomplete="off" />
+      </div>
+      <div class="flex-1">
+        <.input field={@form[:value]} type="password" label="Value" autocomplete="off" />
+      </div>
+      <button class="btn btn-primary btn-sm mb-1" type="submit">Save</button>
+    </.form>
+
+    <ul id="secret-list" class="divide-y divide-base-200 border border-base-200 rounded">
+      <li
+        :for={name <- @secrets}
+        id={"secret-#{name}"}
+        class="flex items-center justify-between px-4 py-2"
+      >
+        <span class="text-sm font-mono">{name}</span>
+        <button
+          class="text-sm opacity-60 hover:opacity-100 hover:text-error"
+          phx-click="delete"
+          phx-value-name={name}
+          data-confirm={"Delete secret #{name}?"}
+        >
+          delete
+        </button>
+      </li>
+      <li :if={@secrets == []} class="px-4 py-3 text-sm opacity-60">
+        No secrets yet
+      </li>
+    </ul>
+  </div>
+</Layouts.app>

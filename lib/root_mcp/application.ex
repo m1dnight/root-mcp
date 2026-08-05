@@ -16,6 +16,7 @@ defmodule Root.Application do
       {Phoenix.PubSub, name: Root.PubSub},
       {Registry, keys: :unique, name: Root.MCP.Upstream.Registry},
       {DynamicSupervisor, name: Root.MCP.Upstream.Supervisor, strategy: :one_for_one},
+      Root.MCP.Upstream.Manager,
       {Root.MCP.Server.Client,
        transport: {:streamable_http, start: Application.get_env(:root_mcp, :start_mcp_transport)}},
       Root.MCP.Server.Client.Notifier,

@@ -69,3 +69,30 @@ Root is defined as three distinct MCP servers.
 
  - Testing a composition uses the real MCPs. Maybe we can sandbox this somehow?
  - Instead of composition, we could also allow plain MCPs being built.
+
+## Development
+
+Because you're dealing with multiple MCP servers, it's easier to restrict which
+MCP your Claude instance has access to.
+
+```bash
+claude --strict-mcp-config --mcp-config '{
+  "mcpServers": {
+    "root-mcp-editor": {
+      "type": "http",
+      "url": "http://localhost:4001/mcp/editor"
+    }
+  }
+}'
+```
+
+```bash
+claude --strict-mcp-config --mcp-config '{
+  "mcpServers": {
+    "root-mcp-client": {
+      "type": "http",
+      "url": "http://localhost:4001/mcp/client"
+    }
+  }
+}'
+```

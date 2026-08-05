@@ -3,22 +3,91 @@ defmodule RootWeb.MCPTest do
 
   import RootWeb.MCPHelpers
 
+  alias Root.Composition
+  alias Root.Composition.Store
+
+  defp store_composition(name, code, schema \\ %{"type" => "object"}) do
+    {:ok, composition} =
+      Composition.new(%{
+        name: name,
+        description: "test composition",
+        input_schema: schema,
+        code: code
+      })
+
+    :ok = Store.put(composition)
+    on_exit(fn -> Store.delete(name) end)
+  end
+
   test "initialize returns server info" do
     {response, _session_id} = initialize_mcp("/mcp")
 
     assert %{"result" => %{"serverInfo" => %{"name" => "RootMCP"}}} = response
   end
 
-  test "lists and calls the echo tool" do
+  test "serves stored compositions as tools, following the store" do
     {_response, session_id} = initialize_mcp("/mcp")
 
-    assert %{"result" => %{"tools" => [%{"name" => "echo"}]}} =
-             mcp_request("/mcp", session_id, 2, "tools/list")
+    assert %{"result" => %{"tools" => []}} = mcp_request("/mcp", session_id, 2, "tools/list")
 
-    assert %{"result" => %{"content" => [%{"type" => "text", "text" => "hello"}]}} =
-             mcp_request("/mcp", session_id, 3, "tools/call", %{
-               "name" => "echo",
-               "arguments" => %{"text" => "hello"}
+    store_composition(
+      "double",
+      "def run(args):\n    return {\"doubled\": args[\"n\"] * 2}",
+      %{
+        "type" => "object",
+        "properties" => %{"n" => %{"type" => "number"}},
+        "required" => ["n"]
+      }
+    )
+
+    # calling before re-listing proves the refresh-on-unknown-tool path
+    assert %{"doubled" => 12} = mcp_call_tool("/mcp", session_id, 3, "double", %{"n" => 6})
+
+    assert %{"result" => %{"tools" => [tool]}} = mcp_request("/mcp", session_id, 4, "tools/list")
+
+    assert %{
+             "name" => "double",
+             "description" => "test composition",
+             "inputSchema" => %{"properties" => %{"n" => _}}
+           } = tool
+
+    :ok = Store.delete("double")
+    assert %{"result" => %{"tools" => []}} = mcp_request("/mcp", session_id, 5, "tools/list")
+  end
+
+  test "script failures surface as tool errors" do
+    store_composition("boom", "def run(args):\n    raise RuntimeError(\"bad\")")
+    {_response, session_id} = initialize_mcp("/mcp")
+
+    assert %{"result" => %{"isError" => true, "content" => [%{"text" => failure}]}} =
+             mcp_request("/mcp", session_id, 2, "tools/call", %{
+               "name" => "boom",
+               "arguments" => %{}
              })
+
+    assert failure =~ "RuntimeError: bad"
+  end
+
+  test "a composition authored in editor mode is callable in user mode" do
+    on_exit(fn -> Store.delete("greet") end)
+
+    {_response, editor_session} = initialize_mcp("/mcp/editor")
+
+    assert %{"stored" => "greet"} =
+             mcp_call_tool("/mcp/editor", editor_session, 2, "upsert_composition", %{
+               "name" => "greet",
+               "description" => "Greets someone by name",
+               "input_schema" => %{
+                 "type" => "object",
+                 "properties" => %{"who" => %{"type" => "string"}},
+                 "required" => ["who"]
+               },
+               "code" => "def run(args):\n    return {\"greeting\": \"hi \" + args[\"who\"]}"
+             })
+
+    {_response, user_session} = initialize_mcp("/mcp")
+
+    assert %{"greeting" => "hi zoe"} =
+             mcp_call_tool("/mcp", user_session, 2, "greet", %{"who" => "zoe"})
   end
 end

@@ -47,6 +47,16 @@ defmodule Root.Composition.Runner do
     end
   end
 
+  @doc "Human-readable description of a run error, suitable for tool error responses."
+  @spec describe_error(run_error()) :: String.t()
+  def describe_error({:script_error, traceback}), do: "script failed:\n" <> traceback
+
+  def describe_error({:abnormal_exit, status, output}),
+    do: "python exited with status #{status}:\n" <> output
+
+  def describe_error(:timeout), do: "timed out (default deadline is 30s)"
+  def describe_error(:python_not_found), do: "python3 not found on PATH"
+
   @spec find_python() :: {:ok, Path.t()} | {:error, :python_not_found}
   defp find_python do
     case System.find_executable("python3") do

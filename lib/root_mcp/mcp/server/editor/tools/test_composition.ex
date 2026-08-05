@@ -45,16 +45,7 @@ defmodule Root.MCP.Server.Editor.Tools.TestComposition do
   defp run(code, args) do
     case Runner.run(code, args) do
       {:ok, result} -> Response.json(Response.tool(), %{result: result})
-      {:error, reason} -> Response.error(Response.tool(), describe(reason))
+      {:error, reason} -> Response.error(Response.tool(), Runner.describe_error(reason))
     end
   end
-
-  @spec describe(Runner.run_error()) :: String.t()
-  defp describe({:script_error, traceback}), do: "script failed:\n" <> traceback
-
-  defp describe({:abnormal_exit, status, output}),
-    do: "python exited with status #{status}:\n" <> output
-
-  defp describe(:timeout), do: "timed out (default deadline is 30s)"
-  defp describe(:python_not_found), do: "python3 not found on PATH"
 end

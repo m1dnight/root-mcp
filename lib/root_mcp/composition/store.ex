@@ -1,29 +1,25 @@
 defmodule Root.Composition.Store do
   @moduledoc """
-  In-memory store of compositions, keyed by name.
+  Persistent store of compositions, keyed by name and backed by `Root.Repo`
+  (SQLite), so authored compositions survive restarts.
 
-  Contents are lost on restart; persistence is a planned follow-up.
+  Every mutation broadcasts `:compositions_changed` on `Root.PubSub` (see
+  `topic/0`); `Root.MCP.Server.Client.Notifier` relays that to connected
+  client-mode sessions.
   """
 
-  use GenServer
+  import Ecto.Query, only: [from: 2]
 
   alias Root.Composition
+  alias Root.Composition.Record
+  alias Root.Repo
 
   @doc """
-  Starts the store.
-
-  ## Example
-
-      # in a supervision tree (uses the module name)
-      children = [Root.Composition.Store]
-
-      # a private instance, e.g. in tests
-      start_supervised!({Root.Composition.Store, name: :my_store})
+  The PubSub topic (on `Root.PubSub`) receiving `:compositions_changed`
+  after every mutation.
   """
-  @spec start_link(keyword()) :: GenServer.on_start()
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, %{}, name: Keyword.get(opts, :name, __MODULE__))
-  end
+  @spec topic() :: String.t()
+  def topic, do: "compositions"
 
   @doc """
   Stores a composition under its name, replacing any existing one.
@@ -40,9 +36,20 @@ defmodule Root.Composition.Store do
       Root.Composition.Store.put(composition)
       # => :ok
   """
-  @spec put(GenServer.server(), Composition.t()) :: :ok
-  def put(store \\ __MODULE__, %Composition{} = composition) do
-    GenServer.call(store, {:put, composition})
+  @spec put(Composition.t()) :: :ok
+  def put(%Composition{} = composition) do
+    %Record{
+      name: composition.name,
+      description: composition.description,
+      input_schema: composition.input_schema,
+      code: composition.code
+    }
+    |> Repo.insert!(
+      on_conflict: {:replace_all_except, [:name, :inserted_at]},
+      conflict_target: :name
+    )
+
+    broadcast_change()
   end
 
   @doc """
@@ -56,9 +63,12 @@ defmodule Root.Composition.Store do
       Root.Composition.Store.get("unknown")
       # => nil
   """
-  @spec get(GenServer.server(), String.t()) :: Composition.t() | nil
-  def get(store \\ __MODULE__, name) when is_binary(name) do
-    GenServer.call(store, {:get, name})
+  @spec get(String.t()) :: Composition.t() | nil
+  def get(name) when is_binary(name) do
+    case Repo.get(Record, name) do
+      nil -> nil
+      record -> to_composition(record)
+    end
   end
 
   @doc """
@@ -69,9 +79,11 @@ defmodule Root.Composition.Store do
       Root.Composition.Store.list()
       # => [%Root.Composition{name: "copy_files", ...}, %Root.Composition{name: "greet", ...}]
   """
-  @spec list(GenServer.server()) :: [Composition.t()]
-  def list(store \\ __MODULE__) do
-    GenServer.call(store, :list)
+  @spec list() :: [Composition.t()]
+  def list do
+    from(record in Record, order_by: record.name)
+    |> Repo.all()
+    |> Enum.map(&to_composition/1)
   end
 
   @doc """
@@ -85,44 +97,26 @@ defmodule Root.Composition.Store do
       Root.Composition.Store.delete("greet")
       # => {:error, :not_found}
   """
-  @spec delete(GenServer.server(), String.t()) :: :ok | {:error, :not_found}
-  def delete(store \\ __MODULE__, name) when is_binary(name) do
-    GenServer.call(store, {:delete, name})
-  end
+  @spec delete(String.t()) :: :ok | {:error, :not_found}
+  def delete(name) when is_binary(name) do
+    case Repo.get(Record, name) do
+      nil ->
+        {:error, :not_found}
 
-  @doc """
-  The PubSub topic (on `Root.PubSub`) receiving `:compositions_changed`
-  after every mutation.
-  """
-  @spec topic() :: String.t()
-  def topic, do: "compositions"
-
-  @impl true
-  def init(compositions), do: {:ok, compositions}
-
-  @impl true
-  def handle_call({:put, composition}, _from, compositions) do
-    broadcast_change()
-    {:reply, :ok, Map.put(compositions, composition.name, composition)}
-  end
-
-  def handle_call({:get, name}, _from, compositions) do
-    {:reply, Map.get(compositions, name), compositions}
-  end
-
-  def handle_call(:list, _from, compositions) do
-    {:reply, compositions |> Map.values() |> Enum.sort_by(& &1.name), compositions}
-  end
-
-  def handle_call({:delete, name}, _from, compositions) do
-    case Map.pop(compositions, name) do
-      {nil, _} ->
-        {:reply, {:error, :not_found}, compositions}
-
-      {_composition, rest} ->
+      record ->
+        Repo.delete!(record)
         broadcast_change()
-        {:reply, :ok, rest}
     end
+  end
+
+  @spec to_composition(Record.t()) :: Composition.t()
+  defp to_composition(%Record{} = record) do
+    %Composition{
+      name: record.name,
+      description: record.description,
+      input_schema: record.input_schema,
+      code: record.code
+    }
   end
 
   @spec broadcast_change() :: :ok

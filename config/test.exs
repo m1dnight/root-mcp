@@ -25,6 +25,10 @@ config :root_mcp, :start_mcp_transport, true
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+# Silence anubis logging: idle test sessions have no SSE stream, so every
+# tools/list_changed notification logs a noisy (expected) delivery error
+config :anubis_mcp, log: false
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 

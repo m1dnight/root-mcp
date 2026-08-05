@@ -1,5 +1,5 @@
 defmodule Root.CompositionTest do
-  use ExUnit.Case, async: true
+  use Root.DataCase, async: true
 
   # store changes notify idle MCP test sessions, which log no_sse_handler errors
   @moduletag :capture_log
@@ -38,24 +38,34 @@ defmodule Root.CompositionTest do
 
   describe "Store" do
     setup do
-      store = start_supervised!({Store, name: :"store_#{System.unique_integer([:positive])}"})
       {:ok, composition} = Composition.new(@valid)
-      %{store: store, composition: composition}
+      %{composition: composition}
     end
 
-    test "puts, gets, overwrites, lists, and deletes", %{store: store, composition: composition} do
-      assert Store.get(store, "copy_files") == nil
-      assert :ok = Store.put(store, composition)
-      assert %Composition{name: "copy_files"} = Store.get(store, "copy_files")
+    test "puts, gets, overwrites, lists, and deletes", %{composition: composition} do
+      assert Store.get("copy_files") == nil
+      assert :ok = Store.put(composition)
+      assert %Composition{name: "copy_files"} = Store.get("copy_files")
 
       updated = %{composition | description: "v2"}
-      assert :ok = Store.put(store, updated)
-      assert %Composition{description: "v2"} = Store.get(store, "copy_files")
-      assert [%Composition{name: "copy_files"}] = Store.list(store)
+      assert :ok = Store.put(updated)
+      assert %Composition{description: "v2"} = Store.get("copy_files")
+      assert [%Composition{name: "copy_files"}] = Store.list()
 
-      assert :ok = Store.delete(store, "copy_files")
-      assert Store.list(store) == []
-      assert {:error, :not_found} = Store.delete(store, "copy_files")
+      assert :ok = Store.delete("copy_files")
+      assert Store.list() == []
+      assert {:error, :not_found} = Store.delete("copy_files")
+    end
+
+    test "round-trips the input schema through the database", %{composition: composition} do
+      schema = %{
+        "type" => "object",
+        "properties" => %{"n" => %{"type" => "number"}},
+        "required" => ["n"]
+      }
+
+      assert :ok = Store.put(%{composition | input_schema: schema})
+      assert %Composition{input_schema: ^schema} = Store.get("copy_files")
     end
   end
 end

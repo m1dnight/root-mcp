@@ -211,3 +211,68 @@ claude --strict-mcp-config --mcp-config '{
 
 - Testing a composition uses the real MCPs. Maybe we can sandbox this somehow?
 - Instead of composition, we could also allow plain MCPs being built.
+
+
+## Validation
+
+(This is rudimentary, and I'm thinking of more ways to validate).
+
+### Cost
+
+I created a simple composition that gives a markdown table to summarize a
+Postgres database connected via `postgres-mcp`. The first run is by using the
+composition in Root, and the second one is asking the same summary with a direct
+connection to the Postgres MCP.
+
+```bash
+# prompt
+DISABLE_PROMPT_CACHING=1 claude --strict-mcp-config --allowed-tools "mcp__root-mcp-client__db_summary_markdown" --mcp-config '{
+  "mcpServers": {
+    "root-mcp-client": {
+      "type": "http",
+      "url": "http://localhost:4001/mcp/client"
+    }
+  }
+}' -p "please give a summary of the database using the composition" --output-format json | jq '{duration_ms: .duration_ms, turns: .num_turns, input_tokens: .usage.input_tokens, output_tokens: .usage.output_tokens, cost: .total_cost_usd}'
+```
+
+```json
+{
+  "duration_ms": 12451,
+  "turns": 3,
+  "input_tokens": 67046,
+  "output_tokens": 648,
+  "cost": 0.35143
+}
+```
+
+
+```bash
+# prompt
+DISABLE_PROMPT_CACHING=1 claude --strict-mcp-config --allowed-tools "mcp__postgres__execute_sql" --mcp-config  '{
+  "mcpServers": {
+    "postgres": {
+      "command": "uvx",
+      "args": [
+        "--with",
+        "mcp<2",
+        "postgres-mcp",
+        "--access-mode=unrestricted"
+      ],
+      "env": {
+        "DATABASE_URI": "postgresql://postgres:postgres@localhost:5432/postgres"
+      }
+    }
+  }
+}' -p "Summarize every user table in the Postgres database (all schemas except pg_catalog, information_schema, and pg_toast). For each table return its schema, name, total on-disk size, column list (name, type, nullability), and row count — exact when there are 50 or fewer tables, otherwise the planner's estimate (row_counts_are_exact flag says which)." --output-format json | jq '{duration_ms: .duration_ms, turns: .num_turns, input_tokens: .usage.input_tokens, output_tokens: .usage.output_tokens, cost: .total_cost_usd}'
+```
+
+```json
+{
+  "duration_ms": 24808,
+  "turns": 6,
+  "input_tokens": 114431,
+  "output_tokens": 1765,
+  "cost": 0.61628
+}
+```

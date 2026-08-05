@@ -2,6 +2,6 @@ defmodule RootWeb.PageController do
   use RootWeb, :controller
 
   def home(conn, _params) do
-    render(conn, :home)
+    redirect(conn, to: ~p"/compositions")
   end
 end

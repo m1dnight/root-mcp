@@ -22,6 +22,9 @@ defmodule RootWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    live "/compositions", CompositionLive
+    live "/compositions/:name", CompositionLive
   end
 
   # The MCP scopes must NOT pipe through :api — its `accepts ["json"]` plug

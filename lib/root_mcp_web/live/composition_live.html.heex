@@ -1,0 +1,52 @@
+<Layouts.app flash={@flash}>
+  <div class="mx-auto max-w-6xl">
+    <h1 class="text-xl font-semibold mb-6">Compositions</h1>
+
+    <div class="flex gap-8 items-start">
+      <ul id="composition-list" class="w-56 shrink-0 space-y-1">
+        <li :for={composition <- @compositions} id={"composition-#{composition.name}"}>
+          <.link
+            patch={~p"/compositions/#{composition.name}"}
+            class={[
+              "block rounded px-3 py-1.5 text-sm hover:bg-base-200",
+              @selected && @selected.name == composition.name && "bg-base-200 font-semibold"
+            ]}
+          >
+            {composition.name}
+          </.link>
+        </li>
+        <li :if={@compositions == []} class="px-3 py-1.5 text-sm opacity-60">
+          No compositions yet
+        </li>
+      </ul>
+
+      <section :if={@selected} class="flex-1 min-w-0 space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold">{@selected.name}</h2>
+          <p class="text-sm opacity-80">{@selected.description}</p>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold mb-2 opacity-60">Input schema</h3>
+          <pre
+            id="composition-schema"
+            class="rounded bg-base-200 p-4 text-xs overflow-x-auto"
+          >{Jason.encode!(@selected.input_schema, pretty: true)}</pre>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold mb-2 opacity-60">Code</h3>
+          <pre
+            id="composition-code"
+            class="rounded p-4 text-xs leading-5 overflow-x-auto"
+            style="background:#0d1117;color:#e6edf3"
+          >{PythonHighlighter.highlight(@selected.code)}</pre>
+        </div>
+      </section>
+
+      <section :if={!@selected} class="flex-1 py-12 text-center text-sm opacity-60">
+        Select a composition to view its code.
+      </section>
+    </div>
+  </div>
+</Layouts.app>

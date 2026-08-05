@@ -8,13 +8,14 @@ defmodule Root.Composition do
   """
 
   @enforce_keys [:name, :description, :input_schema, :code]
-  defstruct [:name, :description, :input_schema, :code]
+  defstruct [:name, :description, :input_schema, :code, enabled: true]
 
   @type t :: %__MODULE__{
           name: String.t(),
           description: String.t(),
           input_schema: map(),
-          code: String.t()
+          code: String.t(),
+          enabled: boolean()
         }
 
   @name_format ~r/^[a-z][a-z0-9_]*$/
@@ -29,7 +30,8 @@ defmodule Root.Composition do
       name: fields[:name],
       description: fields[:description],
       input_schema: fields[:input_schema] || %{"type" => "object"},
-      code: fields[:code]
+      code: fields[:code],
+      enabled: Map.get(fields, :enabled, true)
     }
 
     case validate(composition) do

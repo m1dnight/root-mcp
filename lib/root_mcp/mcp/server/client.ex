@@ -45,8 +45,12 @@ defmodule Root.MCP.Server.Client do
   @impl true
   def handle_tool_call(name, params, frame) do
     case Store.get(name) do
-      %Composition{code: code} ->
+      %Composition{enabled: true, code: code} ->
         {:reply, run(code, params), frame}
+
+      %Composition{enabled: false} ->
+        {:error, Error.protocol(:method_not_found, %{message: "composition disabled: #{name}"}),
+         frame}
 
       nil ->
         {:error, Error.protocol(:method_not_found, %{message: "no such composition: #{name}"}),
@@ -82,7 +86,7 @@ defmodule Root.MCP.Server.Client do
   @spec register_composition_tools(Frame.t()) :: Frame.t()
   defp register_composition_tools(frame) do
     tools =
-      for composition <- Store.list(), into: %{} do
+      for composition <- Store.list_enabled(), into: %{} do
         {composition.name, build_tool(composition)}
       end
 

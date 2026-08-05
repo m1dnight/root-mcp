@@ -46,6 +46,19 @@ defmodule RootWeb.CompositionLiveTest do
     assert view |> element("#composition-schema") |> render() =~ "who"
   end
 
+  test "toggles a composition's enabled state", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/compositions/greet")
+
+    view |> element("#composition-toggle") |> render_click()
+    assert %Root.Composition{enabled: false} = Store.get("greet")
+    refute view |> element("#composition-toggle") |> render() =~ "checked"
+    assert render(view) =~ "(disabled)"
+
+    view |> element("#composition-toggle") |> render_click()
+    assert %Root.Composition{enabled: true} = Store.get("greet")
+    assert view |> element("#composition-toggle") |> render() =~ "checked"
+  end
+
   test "live-updates when the store changes", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/compositions")
 

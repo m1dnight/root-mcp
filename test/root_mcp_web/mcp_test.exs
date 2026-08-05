@@ -109,6 +109,32 @@ defmodule RootWeb.MCPTest do
     assert %{"result" => %{"tools" => []}} = mcp_request("/mcp", session_id, 5, "tools/list")
   end
 
+  test "disabled compositions are not served, even to sessions that saw them" do
+    store_composition("switchable", "def run(args):\n    return {\"ok\": True}")
+    {_response, session_id} = initialize_mcp("/mcp")
+
+    assert %{"result" => %{"tools" => [%{"name" => "switchable"}]}} =
+             mcp_request("/mcp", session_id, 2, "tools/list")
+
+    composition = Store.get("switchable")
+    :ok = Store.put(%{composition | enabled: false})
+
+    # the session's frame still has the tool registered — the call-time
+    # enabled check must reject it anyway
+    assert %{"error" => %{"code" => -32601} = error} =
+             mcp_request("/mcp", session_id, 3, "tools/call", %{
+               "name" => "switchable",
+               "arguments" => %{}
+             })
+
+    assert inspect(error) =~ "disabled"
+
+    assert %{"result" => %{"tools" => []}} = mcp_request("/mcp", session_id, 4, "tools/list")
+
+    :ok = Store.put(composition)
+    assert %{"ok" => true} = mcp_call_tool("/mcp", session_id, 5, "switchable")
+  end
+
   test "script failures surface as tool errors" do
     store_composition("boom", "def run(args):\n    raise RuntimeError(\"bad\")")
     {_response, session_id} = initialize_mcp("/mcp")

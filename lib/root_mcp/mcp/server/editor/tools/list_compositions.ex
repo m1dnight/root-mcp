@@ -13,7 +13,11 @@ defmodule Root.MCP.Server.Editor.Tools.ListCompositions do
   def execute(_params, frame) do
     compositions =
       for composition <- Store.list() do
-        %{name: composition.name, description: composition.description}
+        %{
+          name: composition.name,
+          description: composition.description,
+          enabled: composition.enabled
+        }
       end
 
     {:reply, Response.json(Response.tool(), %{compositions: compositions}), frame}

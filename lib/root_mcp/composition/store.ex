@@ -42,7 +42,8 @@ defmodule Root.Composition.Store do
       name: composition.name,
       description: composition.description,
       input_schema: composition.input_schema,
-      code: composition.code
+      code: composition.code,
+      enabled: composition.enabled
     }
     |> Repo.insert!(
       on_conflict: {:replace_all_except, [:name, :inserted_at]},
@@ -87,6 +88,16 @@ defmodule Root.Composition.Store do
   end
 
   @doc """
+  Lists the enabled compositions, sorted by name — what client mode serves.
+  """
+  @spec list_enabled() :: [Composition.t()]
+  def list_enabled do
+    from(record in Record, where: record.enabled, order_by: record.name)
+    |> Repo.all()
+    |> Enum.map(&to_composition/1)
+  end
+
+  @doc """
   Deletes a composition by name.
 
   ## Example
@@ -115,7 +126,8 @@ defmodule Root.Composition.Store do
       name: record.name,
       description: record.description,
       input_schema: record.input_schema,
-      code: record.code
+      code: record.code,
+      enabled: record.enabled
     }
   end
 

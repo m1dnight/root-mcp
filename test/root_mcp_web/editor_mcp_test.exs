@@ -89,6 +89,37 @@ defmodule RootWeb.EditorMCPTest do
     assert message =~ "def run(args)"
   end
 
+  test "upsert_composition preserves the enabled flag on update" do
+    on_exit(fn -> Root.Composition.Store.delete("kept_off") end)
+    {_response, session_id} = initialize_mcp("/mcp/editor")
+
+    args = %{
+      "name" => "kept_off",
+      "description" => "stays disabled across agent updates",
+      "code" => "def run(args):\n    return {}"
+    }
+
+    assert %{"stored" => "kept_off"} =
+             mcp_call_tool("/mcp/editor", session_id, 2, "upsert_composition", args)
+
+    composition = Root.Composition.Store.get("kept_off")
+    :ok = Root.Composition.Store.put(%{composition | enabled: false})
+
+    assert %{"stored" => "kept_off"} =
+             mcp_call_tool("/mcp/editor", session_id, 3, "upsert_composition", %{
+               args
+               | "code" => "def run(args):\n    return {\"v\": 2}"
+             })
+
+    assert %Root.Composition{enabled: false, code: code} =
+             Root.Composition.Store.get("kept_off")
+
+    assert code =~ "v"
+
+    assert %{"compositions" => [%{"name" => "kept_off", "enabled" => false}]} =
+             mcp_call_tool("/mcp/editor", session_id, 4, "list_compositions")
+  end
+
   test "test_composition runs inline code and reports tracebacks" do
     {_response, session_id} = initialize_mcp("/mcp/editor")
 

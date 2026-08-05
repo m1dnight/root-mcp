@@ -27,6 +27,9 @@ defmodule Root.MCP.Server.Editor.Tools.UpsertComposition do
 
   @impl true
   def execute(params, frame) do
+    # an update must not re-enable a composition the user disabled
+    params = Map.put(params, :enabled, currently_enabled?(params[:name]))
+
     case Composition.new(params) do
       {:ok, composition} ->
         :ok = Store.put(composition)
@@ -36,4 +39,14 @@ defmodule Root.MCP.Server.Editor.Tools.UpsertComposition do
         {:reply, Response.error(Response.tool(), message), frame}
     end
   end
+
+  @spec currently_enabled?(String.t() | nil) :: boolean()
+  defp currently_enabled?(name) when is_binary(name) do
+    case Store.get(name) do
+      nil -> true
+      composition -> composition.enabled
+    end
+  end
+
+  defp currently_enabled?(_name), do: true
 end

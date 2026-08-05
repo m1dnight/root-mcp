@@ -13,6 +13,7 @@ defmodule Root.Composition.Record do
     field :description, :string
     field :input_schema, :map
     field :code, :string
+    field :enabled, :boolean, default: true
 
     timestamps(type: :utc_datetime)
   end

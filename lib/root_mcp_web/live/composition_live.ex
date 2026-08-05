@@ -22,6 +22,16 @@ defmodule RootWeb.CompositionLive do
   end
 
   @impl true
+  def handle_event("toggle", %{"name" => name}, socket) do
+    with %Root.Composition{} = composition <- Store.get(name) do
+      :ok = Store.put(%{composition | enabled: not composition.enabled})
+    end
+
+    selected = if current = socket.assigns.selected, do: Store.get(current.name)
+    {:noreply, assign(socket, compositions: Store.list(), selected: selected)}
+  end
+
+  @impl true
   def handle_info(:compositions_changed, socket) do
     selected = if current = socket.assigns.selected, do: Store.get(current.name)
 

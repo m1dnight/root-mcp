@@ -29,13 +29,15 @@
         <span class="text-xs opacity-60 truncate flex-1">
           {config.command} {Enum.map_join(config.args, " ", &format_arg/1)}
         </span>
-        <button
-          class="text-sm opacity-60 hover:opacity-100"
+        <input
+          id={"upstream-toggle-#{config.id}"}
+          type="checkbox"
+          class="toggle toggle-xs"
+          checked={config.enabled}
           phx-click="toggle"
           phx-value-id={config.id}
-        >
-          {(config.enabled && "disable") || "enable"}
-        </button>
+          title={(config.enabled && "enabled") || "disabled"}
+        />
         <button
           class="text-sm opacity-60 hover:opacity-100"
           phx-click="edit"

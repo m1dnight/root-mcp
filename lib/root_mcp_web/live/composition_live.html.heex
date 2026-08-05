@@ -9,7 +9,8 @@
             patch={~p"/compositions/#{composition.name}"}
             class={[
               "block rounded px-3 py-1.5 text-sm hover:bg-base-200",
-              @selected && @selected.name == composition.name && "bg-base-200 font-semibold"
+              @selected && @selected.name == composition.name && "bg-base-200 font-semibold",
+              !composition.enabled && "opacity-50 line-through"
             ]}
           >
             {composition.name}
@@ -21,9 +22,27 @@
       </ul>
 
       <section :if={@selected} class="flex-1 min-w-0 space-y-6">
-        <div>
-          <h2 class="text-lg font-semibold">{@selected.name}</h2>
-          <p class="text-sm opacity-80">{@selected.description}</p>
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold">
+              {@selected.name}
+              <span :if={!@selected.enabled} class="text-xs font-normal opacity-60">
+                (disabled)
+              </span>
+            </h2>
+            <p class="text-sm opacity-80">{@selected.description}</p>
+          </div>
+          <label class="flex items-center gap-2 text-sm opacity-80 cursor-pointer shrink-0">
+            enabled
+            <input
+              id="composition-toggle"
+              type="checkbox"
+              class="toggle toggle-sm"
+              checked={@selected.enabled}
+              phx-click="toggle"
+              phx-value-name={@selected.name}
+            />
+          </label>
         </div>
 
         <div>

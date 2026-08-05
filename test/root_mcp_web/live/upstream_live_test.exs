@@ -50,9 +50,9 @@ defmodule RootWeb.UpstreamLiveTest do
 
     assert %Config{id: "pg", command: "uv"} = Store.get("pg")
 
-    view |> element("#upstream-pg button", "disable") |> render_click()
+    view |> element("#upstream-toggle-pg") |> render_click()
     assert %Config{enabled: false} = Store.get("pg")
-    assert has_element?(view, "#upstream-pg button", "enable")
+    refute view |> element("#upstream-toggle-pg") |> render() =~ "checked"
 
     view |> element("#upstream-pg button", "delete") |> render_click()
     refute has_element?(view, "#upstream-pg")

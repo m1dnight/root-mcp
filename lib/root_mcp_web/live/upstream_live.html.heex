@@ -3,10 +3,11 @@
     <h1 class="text-xl font-semibold mb-2">Upstreams</h1>
     <p class="text-sm opacity-70 mb-6">
       Enabled upstreams are started automatically, on boot and on save. Env values
-      are literal strings or references:
+      and arg lines are literal strings or references:
       <code class="text-xs" phx-no-curly-interpolation>{"$secret": "name"}</code>
       (vault) or <code class="text-xs" phx-no-curly-interpolation>{"$env": "NAME"}</code>
-      (host environment).
+      (host environment). Prefer env for credentials — arguments are visible in
+      the machine's process list.
     </p>
 
     <ul id="upstream-list" class="divide-y divide-base-200 border border-base-200 rounded mb-8">
@@ -26,7 +27,7 @@
         </span>
         <span class="text-sm font-mono">{config.id}</span>
         <span class="text-xs opacity-60 truncate flex-1">
-          {config.command} {Enum.join(config.args, " ")}
+          {config.command} {Enum.map_join(config.args, " ", &format_arg/1)}
         </span>
         <button
           class="text-sm opacity-60 hover:opacity-100"

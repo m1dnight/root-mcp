@@ -36,11 +36,12 @@ defmodule RootWeb.UpstreamLive do
 
   def handle_event("save", %{"config" => params}, socket) do
     with {:ok, env} <- parse_env(params["env"]),
+         {:ok, args} <- parse_args(params["args"]),
          {:ok, config} <-
            Config.new(%{
              id: socket.assigns.editing || String.trim(params["id"] || ""),
              command: String.trim(params["command"] || ""),
-             args: parse_args(params["args"]),
+             args: args,
              env: env,
              cwd: presence(params["cwd"]),
              enabled: params["enabled"] == "true"
@@ -95,7 +96,7 @@ defmodule RootWeb.UpstreamLive do
         build_form(%{
           "id" => config.id,
           "command" => config.command,
-          "args" => Enum.join(config.args, "\n"),
+          "args" => Enum.map_join(config.args, "\n", &format_arg/1),
           "env" => Jason.encode!(config.env, pretty: true),
           "cwd" => config.cwd || "",
           "enabled" => to_string(config.enabled)
@@ -114,13 +115,38 @@ defmodule RootWeb.UpstreamLive do
     end
   end
 
-  @spec parse_args(String.t() | nil) :: [String.t()]
+  @spec parse_args(String.t() | nil) :: {:ok, [Config.template_value()]} | {:error, String.t()}
   defp parse_args(text) do
     (text || "")
     |> String.split("\n")
     |> Enum.map(&String.trim/1)
     |> Enum.reject(&(&1 == ""))
+    |> Enum.reduce_while({:ok, []}, fn line, {:ok, args} ->
+      case parse_arg(line) do
+        {:ok, arg} -> {:cont, {:ok, [arg | args]}}
+        :error -> {:halt, {:error, "invalid JSON reference in args: #{line}"}}
+      end
+    end)
+    |> case do
+      {:ok, args} -> {:ok, Enum.reverse(args)}
+      error -> error
+    end
   end
+
+  # lines starting with { are JSON references, everything else is literal
+  @spec parse_arg(String.t()) :: {:ok, Config.template_value()} | :error
+  defp parse_arg("{" <> _rest = line) do
+    case JSON.decode(line) do
+      {:ok, %{} = reference} -> {:ok, reference}
+      _invalid -> :error
+    end
+  end
+
+  defp parse_arg(line), do: {:ok, line}
+
+  @spec format_arg(Config.template_value()) :: String.t()
+  defp format_arg(arg) when is_binary(arg), do: arg
+  defp format_arg(%{} = reference), do: JSON.encode!(reference)
 
   @spec presence(String.t() | nil) :: String.t() | nil
   defp presence(value) do

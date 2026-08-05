@@ -9,7 +9,8 @@ defmodule Root.MCP.Upstream.Config.Record do
   @primary_key {:id, :string, autogenerate: false}
   schema "upstream_configs" do
     field :command, :string
-    field :args, {:array, :string}
+    # args may mix literal strings and reference maps; same JSON-text storage
+    field :args, Root.EctoJSON
     field :env, :map
     field :cwd, :string
     field :enabled, :boolean

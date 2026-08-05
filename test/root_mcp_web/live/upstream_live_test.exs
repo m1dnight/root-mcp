@@ -16,7 +16,7 @@ defmodule RootWeb.UpstreamLiveTest do
       config: %{
         id: "pg",
         command: "uvx",
-        args: "--with\nmcp<2\npostgres-mcp",
+        args: "--with\nmcp<2\npostgres-mcp\n{\"$secret\": \"db-url\"}",
         env: ~s({"DATABASE_URI": {"$secret": "db-url"}}),
         cwd: "",
         enabled: "true"
@@ -28,7 +28,7 @@ defmodule RootWeb.UpstreamLiveTest do
 
     assert %Config{
              command: "uvx",
-             args: ["--with", "mcp<2", "postgres-mcp"],
+             args: ["--with", "mcp<2", "postgres-mcp", %{"$secret" => "db-url"}],
              env: %{"DATABASE_URI" => %{"$secret" => "db-url"}},
              enabled: true
            } = Store.get("pg")
@@ -73,6 +73,12 @@ defmodule RootWeb.UpstreamLiveTest do
              config: %{id: "Bad_Id", command: "cmd", env: "{}", enabled: "true"}
            )
            |> render_submit() =~ "lowercase"
+
+    assert view
+           |> form("#upstream-form",
+             config: %{id: "x", command: "cmd", args: "{not json", env: "{}", enabled: "true"}
+           )
+           |> render_submit() =~ "invalid JSON reference in args"
 
     assert Store.list() == []
   end

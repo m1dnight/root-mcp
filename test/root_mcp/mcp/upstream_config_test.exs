@@ -26,6 +26,14 @@ defmodule Root.MCP.UpstreamConfigTest do
 
       assert {:error, message} = Config.new(%{@valid | env: %{"X" => %{"$vault" => "nope"}}})
       assert message =~ "env values"
+
+      assert {:error, message} = Config.new(%{@valid | args: ["ok", %{"$vault" => "nope"}]})
+      assert message =~ "args must be"
+    end
+
+    test "accepts reference maps in args" do
+      assert {:ok, %Config{args: ["--api-key", %{"$secret" => "api-key"}]}} =
+               Config.new(%{@valid | args: ["--api-key", %{"$secret" => "api-key"}]})
     end
   end
 
@@ -48,6 +56,16 @@ defmodule Root.MCP.UpstreamConfigTest do
                })
     end
 
+    test "resolves references in args, preserving order" do
+      :ok = Vault.put("api-key", "sk-hunter2")
+
+      assert {:ok, ["--api-key", "sk-hunter2", "serve"]} =
+               Config.resolve_args(["--api-key", %{"$secret" => "api-key"}, "serve"])
+
+      assert {:error, {:missing_secret, "ghost"}} =
+               Config.resolve_args([%{"$secret" => "ghost"}])
+    end
+
     test "names the missing reference on failure" do
       assert {:error, {:missing_env, "ROOT_TEST_ABSENT"}} =
                Config.resolve_env(%{"X" => %{"$env" => "ROOT_TEST_ABSENT"}})
@@ -58,11 +76,14 @@ defmodule Root.MCP.UpstreamConfigTest do
   end
 
   describe "Store" do
-    test "round-trips configs including env references" do
-      {:ok, config} = Config.new(@valid)
+    test "round-trips configs including env and args references" do
+      {:ok, config} = Config.new(%{@valid | args: ["postgres-mcp", %{"$secret" => "db-url"}]})
       assert :ok = Store.put(config)
 
-      assert %Config{env: %{"DATABASE_URI" => %{"$secret" => "db-url"}}} = Store.get("pg")
+      assert %Config{
+               env: %{"DATABASE_URI" => %{"$secret" => "db-url"}},
+               args: ["postgres-mcp", %{"$secret" => "db-url"}]
+             } = Store.get("pg")
 
       {:ok, disabled} = Config.new(Map.put(@valid, :enabled, false))
       assert :ok = Store.put(disabled)

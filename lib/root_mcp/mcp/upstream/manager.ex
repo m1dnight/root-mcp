@@ -63,7 +63,8 @@ defmodule Root.MCP.Upstream.Manager do
   @spec start_upstream(Config.t()) :: :ok
   defp start_upstream(config) do
     with {:ok, env} <- Config.resolve_env(config.env),
-         {:ok, _pid} <- Upstream.start(config.id, start_opts(config, env)) do
+         {:ok, args} <- Config.resolve_args(config.args),
+         {:ok, _pid} <- Upstream.start(config.id, start_opts(config, args, env)) do
       Logger.info("started upstream #{config.id} (#{config.command})")
     else
       {:error, reason} ->
@@ -73,9 +74,9 @@ defmodule Root.MCP.Upstream.Manager do
     :ok
   end
 
-  @spec start_opts(Config.t(), %{String.t() => String.t()}) :: keyword()
-  defp start_opts(config, env) do
-    [command: config.command, args: config.args, env: env] ++
+  @spec start_opts(Config.t(), [String.t()], %{String.t() => String.t()}) :: keyword()
+  defp start_opts(config, args, env) do
+    [command: config.command, args: args, env: env] ++
       if config.cwd, do: [cwd: config.cwd], else: []
   end
 end
